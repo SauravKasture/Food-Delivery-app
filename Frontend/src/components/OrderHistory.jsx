@@ -1,48 +1,63 @@
-import React from "react";
-import { Container, Row, Col, Card } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import axiosInstance from "../utils/axiosInstance";
 
 const OrderHistory = () => {
-  // Sample data for past orders
-  const orders = [
-    {
-      id: 1,
-      date: "2023-10-01",
-      items: ["Pizza", "Burger"],
-      total: 450,
-    },
-    {
-      id: 2,
-      date: "2023-09-25",
-      items: ["Pasta", "Salad"],
-      total: 300,
-    },
-  ];
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("No token found. Please log in.");
+          setLoading(false);
+          return;
+        }
+
+        // Fetch orders using Axios
+        const response = await axiosInstance.get("/api/orders");
+
+        // Check if the response contains valid data
+        setOrders(response.data);
+      } catch (err) {
+        console.error("Error fetching orders:", err);
+        setError(err.response?.data?.message || "An unexpected error occurred. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOrders();
+  }, []);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) return <p>{error}</p>;
 
   return (
-    <Container className="mt-4">
-      <h2 className="text-center mb-4">Order History</h2>
+    <div>
+      <h1>Order History</h1>
       {orders.length === 0 ? (
-        <p className="text-center text-muted">No past orders found.</p>
+        <p>No orders found.</p>
       ) : (
-        orders.map((order) => (
-          <Card key={order.id} className="mb-3 shadow-sm">
-            <Card.Body>
-              <Card.Title>Order #{order.id}</Card.Title>
-              <Card.Text>
-                <strong>Date:</strong> {order.date}
-                <br />
-                <strong>Items:</strong> {order.items.join(", ")}
-                <br />
-                <strong>Total:</strong> ₹{order.total}
-              </Card.Text>
-              <Button variant="primary" size="sm">
-                Reorder
-              </Button>
-            </Card.Body>
-          </Card>
-        ))
+        <ul>
+          {orders.map((order) => (
+            <li key={order._id}>
+              <p>Total Amount: ${order.totalAmount}</p>
+              <p>Status: {order.status}</p>
+              <ul>
+                {order.items.map((item) => (
+                  <li key={item.product._id}>
+                    {item.product.name} - Quantity: {item.quantity}
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
       )}
-    </Container>
+    </div>
   );
 };
 

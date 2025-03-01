@@ -1,14 +1,20 @@
-// components/Navbar.jsx
-import React from "react";
+import React, { useContext } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CartContext } from "../context/CartContext";
 
-const Navbar = ({ userRole, userName, handleLogout, cartItemCount }) => {
+const Navbar = ({ userRole, userName, handleLogout }) => {
   const navigate = useNavigate(); // Use navigate hook here
+  const { cartCount } = useContext(CartContext); // Access cart count from CartContext
 
   // Handle logout with redirection
   const handleUserLogout = () => {
-    handleLogout(); // Call the parent handleLogout function
-    navigate("/"); // Redirect to Home page
+    try {
+      handleLogout(); // Call the parent handleLogout function
+      navigate("/"); // Redirect to Home page
+    } catch (err) {
+      console.error("Error during logout:", err);
+      alert("An unexpected error occurred. Please try again.");
+    }
   };
 
   return (
@@ -73,9 +79,9 @@ const Navbar = ({ userRole, userName, handleLogout, cartItemCount }) => {
                 <li className="nav-item position-relative">
                   <Link to="/cart" className="nav-link d-flex align-items-center">
                     <i className="fas fa-cart-shopping me-1"></i> Cart{" "}
-                    {cartItemCount > 0 && (
+                    {cartCount > 0 && (
                       <span className="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
-                        {cartItemCount}
+                        {cartCount}
                       </span>
                     )}
                   </Link>
@@ -89,7 +95,7 @@ const Navbar = ({ userRole, userName, handleLogout, cartItemCount }) => {
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                   >
-                    {userName}
+                    {userName || "User"}
                   </a>
                   <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                     <li>

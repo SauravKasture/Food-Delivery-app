@@ -1,28 +1,46 @@
-// pages/CartPage.jsx
-import React from "react";
+import React, { useContext } from "react";
 import { Link } from "react-router-dom";
+import { CartContext } from "../context/CartContext";
 
-const CartPage = ({ cartItems, setCartItems }) => {
+const CartPage = () => {
+  const { cartItems, addToCartHandler, removeFromCartHandler } = useContext(CartContext);
+
   // Calculate subtotal
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum, item) => sum + (item.menuItem?.price || 0) * item.quantity,
     0
   );
   const tax = subtotal * 0.1; // 10% tax
   const total = subtotal + tax;
 
   // Update item quantity
-  const updateQuantity = (id, newQuantity) => {
-    setCartItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, quantity: newQuantity } : item
-      )
-    );
+  const updateQuantity = async (menuItemId, newQuantity) => {
+    try {
+      if (newQuantity < 1) {
+        alert("Quantity cannot be less than 1.");
+        return;
+      }
+
+      // Calculate the difference between the new and current quantity
+      const currentQuantity = cartItems.find((item) => item.menuItem._id === menuItemId)?.quantity || 0;
+      const quantityDifference = newQuantity - currentQuantity;
+
+      // Call the addToCartHandler with the difference
+      await addToCartHandler(menuItemId, quantityDifference);
+    } catch (err) {
+      console.error("Error updating cart item:", err);
+      alert("Failed to update item quantity. Please try again.");
+    }
   };
 
   // Remove item from cart
-  const removeItem = (id) => {
-    setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  const removeItem = async (menuItemId) => {
+    try {
+      await removeFromCartHandler(menuItemId); // Remove item from the backend
+    } catch (err) {
+      console.error("Error removing cart item:", err);
+      alert("Failed to remove item. Please try again.");
+    }
   };
 
   return (
@@ -32,49 +50,50 @@ const CartPage = ({ cartItems, setCartItems }) => {
       {/* Cart Items */}
       {cartItems.length > 0 ? (
         <div>
-          {cartItems.map((item) => (
-            <div key={item.id} className="card mb-3 shadow-sm">
-              <div className="row g-0">
-                <div className="col-md-4">
-                  <img
-                    src={`https://via.placeholder.com/150`}
-                    alt={item.name}
-                    className="img-fluid rounded-start"
-                  />
-                </div>
-                <div className="col-md-8">
-                  <div className="card-body">
-                    <h5 className="card-title">{item.name}</h5>
-                    <p className="card-text text-danger">₹{item.price}</p>
-                    <div className="d-flex align-items-center">
-                      <button
-                        className="btn btn-sm btn-outline-secondary me-2"
-                        onClick={() =>
-                          updateQuantity(item.id, Math.max(1, item.quantity - 1))
-                        }
-                      >
-                        -
-                      </button>
-                      <span>{item.quantity}</span>
-                      <button
-                        className="btn btn-sm btn-outline-secondary ms-2"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        +
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm ms-auto"
-                        onClick={() => removeItem(item.id)}
-                      >
-                        Remove
-                      </button>
+          {cartItems.map((item) => {
+            return (
+              <div key={item.menuItem?._id} className="card mb-3 shadow-sm">
+                <div className="row g-0">
+                  <div className="col-md-4">
+                    <img
+                      src={item.menuItem?.image || "https://via.placeholder.com/150"}
+                      alt={item.menuItem?.name || "Unknown Item"}
+                      className="img-fluid rounded-start"
+                    />
+                  </div>
+                  <div className="col-md-8">
+                    <div className="card-body">
+                      <h5 className="card-title">{item.menuItem?.name || "Unknown Item"}</h5>
+                      <p className="card-text text-danger">₹{item.menuItem?.price || 0}</p>
+                      <div className="d-flex align-items-center">
+                        <button
+                          className="btn btn-sm btn-outline-secondary me-2"
+                          onClick={() =>
+                            updateQuantity(item.menuItem?._id, Math.max(1, item.quantity - 1))
+                          }
+                        >
+                          -
+                        </button>
+                        <span>{item.quantity}</span>
+                        <button
+                          className="btn btn-sm btn-outline-secondary ms-2"
+                          onClick={() => updateQuantity(item.menuItem?._id, item.quantity + 1)}
+                        >
+                          +
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm ms-auto"
+                          onClick={() => removeItem(item.menuItem?._id)}
+                        >
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-
+            );
+          })}
           {/* Order Summary */}
           <div className="mt-4">
             <h4>Order Summary</h4>

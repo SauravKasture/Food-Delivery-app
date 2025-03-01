@@ -16,13 +16,13 @@ const Profile = () => {
       try {
         const token = localStorage.getItem("token");
         console.log("Token from localStorage:", token); // Log token
-  
+
         if (!token) {
           setError("No token found. Please log in.");
           setLoading(false);
           return;
         }
-  
+
         const response = await fetch("/api/auth/profile", {
           method: "GET",
           headers: {
@@ -31,15 +31,16 @@ const Profile = () => {
             Pragma: "no-cache", // For older browsers
           },
         });
-  
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch profile data");
+        }
+
         const data = await response.json();
         console.log("API Response:", data); // Log API response
-  
-        if (!response.ok) {
-          setError(data.message || "Failed to fetch profile data");
-          return;
-        }
-  
+
+        // Update form data with fetched profile data
         setFormData({
           name: data.name || "",
           email: data.email || "",
@@ -48,14 +49,15 @@ const Profile = () => {
         });
       } catch (err) {
         console.error("Error fetching profile:", err);
-        setError("An unexpected error occurred. Please try again.");
+        setError(err.message || "An unexpected error occurred. Please try again.");
       } finally {
         setLoading(false);
       }
     };
-  
+
     fetchProfile();
   }, []);
+
   // Handle form input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -65,14 +67,14 @@ const Profile = () => {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         setError("No token found. Please log in.");
         return;
       }
-  
+
       const response = await fetch("/api/auth/profile", {
         method: "PUT",
         headers: {
@@ -81,19 +83,16 @@ const Profile = () => {
         },
         body: JSON.stringify(formData),
       });
-  
-      const data = await response.json();
-      console.log("API Response:", data); // Log API response
-  
+
       if (!response.ok) {
-        setError(data.message || "Failed to update profile");
-        return;
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to update profile");
       }
-  
+
       alert("Profile updated successfully!");
     } catch (err) {
       console.error("Error updating profile:", err);
-      setError("An unexpected error occurred. Please try again.");
+      setError(err.message || "An unexpected error occurred. Please try again.");
     }
   };
 

@@ -2,8 +2,12 @@ const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const cors = require("cors");
-const authRoutes = require("./routes/auth");
-const jwt = require("jsonwebtoken");
+const authRoutes = require("./routes/auth"); // Import auth routes
+const menuRoutes = require("./routes/menuRoutes"); // Import menu routes
+const orderRoutes = require("./routes/orderRoutes"); // Import order routes
+const userRoutes = require("./routes/userRoutes"); // Import user routes
+const cartRoutes = require("./routes/cartRoutes"); // Import cart routes
+const authenticateToken = require("./middleware/authenticateToken"); // Import middleware
 const { swaggerDocs, swaggerUi } = require("./swagger");
 
 // Load environment variables
@@ -13,13 +17,19 @@ dotenv.config();
 const app = express();
 
 // Middleware
-app.use(cors()); // Enable Cross-Origin Resource Sharing
-app.use(express.json()); // Parse JSON requests <--- ADD THIS LINE // Parse JSON requests
+app.use(cors({
+  origin: "http://localhost:5173", // Replace with your frontend URL
+  credentials: true,
+})); // Enable Cross-Origin Resource Sharing
+app.use(express.json()); // Parse JSON requests
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected"))
-  .catch((err) => console.log(err));
+  .then(() => console.log("Connected to MongoDB Atlas"))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1); // Exit the process if MongoDB fails to connect
+  });
 
 // Test Database Connection
 app.get("/test-db", async (req, res) => {
@@ -27,6 +37,7 @@ app.get("/test-db", async (req, res) => {
     await mongoose.connection.db.listCollections().toArray();
     res.status(200).json({ message: "Database connection successful" });
   } catch (error) {
+    console.error("Database test error:", error); // Added detailed logging
     res.status(500).json({ message: "Database connection failed" });
   }
 });
@@ -36,34 +47,21 @@ app.get("/", (req, res) => {
   res.send("Food Delivery Backend is Running!");
 });
 
-// JWT Middleware
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({ message: "Access denied. No token provided." });
-  }
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      return res.status(403).json({ message: "Invalid token." });
-    }
-    req.user = user;
-    next();
-  });
-};
-
 // Routes
-app.use("/api/auth", authRoutes);
-
-// Protected Route Example
-// app.get("/api/profile", authenticateToken, (req, res) => {
-//   res.json({ message: "Profile data", user: req.user });
-// });
+app.use("/api/auth", authRoutes); // Use auth routes
+app.use("/api/orders", orderRoutes); // Use order routes
+app.use("/api/user", userRoutes); // Register user routes under /api/user
+app.use("/api/menu", menuRoutes); // Register menu routes under /api/menu
+app.use("/api/cart", cartRoutes); // Register cart routes under /api/cart
 
 // Swagger Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Error Handling Middleware
+app.use((err, req, res, next) => {
+  console.error("Unhandled server error:", err.stack); // Added detailed logging
+  res.status(500).json({ message: "Something went wrong on the server." });
+});
 
 // Start Server
 const PORT = process.env.PORT || 5000;

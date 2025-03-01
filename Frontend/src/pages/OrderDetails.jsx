@@ -1,41 +1,33 @@
-// pages/OrderDetails.jsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import axiosInstance from "../utils/axiosInstance";
 
 const OrderDetails = () => {
-  // Simulated order data (replace with API call later)
-  const orders = [
-    {
-      id: 1,
-      items: [
-        { name: "Paneer Butter Masala", price: 250, quantity: 2 },
-        { name: "Chicken Biryani", price: 350, quantity: 1 },
-      ],
-      total: 850,
-      status: "Delivered",
-      deliveryAddress: "123 Main Street, New York, NY",
-      deliveryTime: "2023-10-15T14:30:00Z",
-    },
-    {
-      id: 2,
-      items: [
-        { name: "Cold Coffee", price: 120, quantity: 3 },
-        { name: "Gulab Jamun", price: 80, quantity: 5 },
-      ],
-      total: 760,
-      status: "Pending",
-      deliveryAddress: "456 Elm Street, Los Angeles, CA",
-      deliveryTime: "2023-10-16T10:00:00Z",
-    },
-  ];
+  const { orderId } = useParams(); // Get order ID from URL params
+  const [order, setOrder] = useState(null); // State to store order details
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  // Get order ID from URL params
-  const { orderId } = useParams();
-  const order = orders.find((o) => o.id === parseInt(orderId));
+  // Fetch order details from the backend
+  useEffect(() => {
+    const fetchOrderDetails = async () => {
+      try {
+        const response = await axiosInstance.get(`/api/orders/${orderId}`); // Fetch order details
+        setOrder(response.data);
+      } catch (err) {
+        console.error("Error fetching order details:", err);
+        setError("Failed to load order details. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!order) {
-    return <p className="text-center text-muted">Order not found.</p>;
-  }
+    fetchOrderDetails();
+  }, [orderId]);
+
+  if (loading) return <p className="text-center">Loading order details...</p>;
+  if (error) return <p className="text-center text-danger">{error}</p>;
+  if (!order) return <p className="text-center text-muted">Order not found.</p>;
 
   return (
     <div className="container mt-4">
@@ -44,7 +36,7 @@ const OrderDetails = () => {
       {/* Order Summary */}
       <div className="card shadow-sm mb-4">
         <div className="card-body">
-          <h5 className="card-title">Order #{order.id}</h5>
+          <h5 className="card-title">Order #{order._id}</h5>
           <p className="card-text">
             <strong>Status:</strong> {order.status}
           </p>
@@ -52,8 +44,8 @@ const OrderDetails = () => {
             <strong>Delivery Address:</strong> {order.deliveryAddress}
           </p>
           <p className="card-text">
-            <strong>Estimated Delivery Time:</strong>{" "}
-            {new Date(order.deliveryTime).toLocaleString()}
+            <strong>Placed On:</strong>{" "}
+            {new Date(order.createdAt).toLocaleString()}
           </p>
         </div>
       </div>
@@ -73,10 +65,10 @@ const OrderDetails = () => {
           <tbody>
             {order.items.map((item, index) => (
               <tr key={index}>
-                <td>{item.name}</td>
+                <td>{item.menuItem.name}</td>
                 <td>{item.quantity}</td>
-                <td>₹{item.price}</td>
-                <td>₹{item.price * item.quantity}</td>
+                <td>₹{item.menuItem.price}</td>
+                <td>₹{item.menuItem.price * item.quantity}</td>
               </tr>
             ))}
           </tbody>
@@ -85,7 +77,7 @@ const OrderDetails = () => {
 
       {/* Total Amount */}
       <div className="d-flex justify-content-end fw-bold">
-        <span>Total: ₹{order.total}</span>
+        <span>Total: ₹{order.totalAmount}</span>
       </div>
 
       {/* Track Order Button */}

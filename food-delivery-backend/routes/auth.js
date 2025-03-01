@@ -1,82 +1,23 @@
 const express = require("express");
+const router = express.Router();
+const authenticateToken = require("../middleware/authenticateToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-const { JWT_SECRET } = process.env;
-const router = express.Router();
 
-
-// Middleware to verify JWT token
-const authenticateToken = (req, res, next) => {
-  const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1];
-
-  if (!token) {
-    console.log("No token provided in Authorization header");
-    return res.status(401).json({ message: "Access denied. No token provided." });
-  }
-
-  console.log("Token received in middleware:", token); // Log the token
-
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error("JWT verification error:", err); // Log verification error
-      return res.status(403).json({ message: "Invalid token." });
-    }
-    console.log("Decoded token in middleware:", user); // Log decoded token
-    req.user = user;
-    next();
-  });
-};
-
-
-router.get("/profile", authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select("-password");
-
-    if (!user) {
-      console.log("User not found for ID:", userId);
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    console.log("Fetched user profile:", user); // Log fetched user data
-    res.status(200).json(user);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
-
-router.put("/profile", authenticateToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { name, email, phone, address } = req.body;
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      { name, email, phone, address },
-      { new: true, runValidators: true }
-    ).select("-password");
-
-    if (!updatedUser) {
-      console.log("User not found for ID:", userId);
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    console.log("Updated user profile:", updatedUser); // Log updated user data
-    res.status(200).json(updatedUser);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+/**
+ * @swagger
+ * tags:
+ *   name: Authentication
+ *   description: User authentication (login, register)
+ */
 
 /**
  * @swagger
  * /api/auth/register:
  *   post:
  *     summary: Register a new user
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -124,7 +65,7 @@ router.post("/register", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Error during registration:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -134,6 +75,7 @@ router.post("/register", async (req, res) => {
  * /api/auth/login:
  *   post:
  *     summary: Login a user
+ *     tags: [Authentication]
  *     requestBody:
  *       required: true
  *       content:
@@ -176,11 +118,10 @@ router.post("/login", async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign(
-      { id: user._id, name: user.name, role: user.role }, // Include `name` in the payload
+      { id: user._id, name: user.name, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: "1h" }
     );
-
     console.log("Generated token:", token); // Log the generated token
 
     // Send response
@@ -198,46 +139,134 @@ router.post("/login", async (req, res) => {
   }
 });
 
+/**
+ * @swagger
+ * tags:
+ *   name: Profile
+ *   description: User profile management
+ */
 
-
-// GET /api/auth/profile - Fetch user profile
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   get:
+ *     summary: Fetch user profile details
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User profile fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 name:
+ *                   type: string
+ *                 email:
+ *                   type: string
+ *                 phone:
+ *                   type: string
+ *                 address:
+ *                   type: string
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.get("/profile", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select("-password"); // Exclude password from response
 
+    // Fetch user details from the database
+    const user = await User.findById(userId, "name email phone address");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
     res.status(200).json(user);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching profile:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// PUT /api/auth/profile - Update user profile
+/**
+ * @swagger
+ * /api/auth/profile:
+ *   put:
+ *     summary: Update user profile details
+ *     tags: [Profile]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phone:
+ *                 type: string
+ *               address:
+ *                 type: string
+ *             example:
+ *               name: "John Doe"
+ *               email: "john.doe@example.com"
+ *               phone: "1234567890"
+ *               address: "123 Main Street"
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Invalid request body
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ *       500:
+ *         description: Server error
+ */
 router.put("/profile", authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const { name, email, phone, address } = req.body;
 
-    // Find and update user
-    const updatedUser = await User.findByIdAndUpdate(
+    // Validate request body
+    if (!name || !email || !phone || !address) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Update user details in the database
+    const user = await User.findByIdAndUpdate(
       userId,
       { name, email, phone, address },
-      { new: true, runValidators: true }
-    ).select("-password");
+      { new: true }
+    );
 
-    if (!updatedUser) {
+    if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(updatedUser);
+    res.status(200).json({ message: "Profile updated successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Error updating profile:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 module.exports = router;

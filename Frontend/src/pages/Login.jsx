@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axiosInstance from "../utils/axiosInstance"; // Import the Axios instance
 
 const Login = ({ setUserRole }) => {
   const [email, setEmail] = useState("");
@@ -14,40 +15,22 @@ const Login = ({ setUserRole }) => {
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      // Send login request to backend
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      // Send login request to backend using Axios
+      const response = await axiosInstance.post("/api/auth/login", {
+        email,
+        password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        // Handle errors (e.g., invalid credentials)
-        setError(data.message || "Invalid email or password");
-        return;
-      }
+      const data = response.data;
 
       // Simulate successful login
       console.log("Logged in with:", data);
-
-      // Call setUserRole to update the user's role and name in App.js
       setUserRole(data.user.role, data.user.name);
-
-      // Store JWT token in localStorage
-      localStorage.setItem("token", data.token);
-
-      // Show success toast
+      localStorage.setItem("token", data.token); // Store JWT token in localStorage
       setToastMessage("Login successful!");
       setShowToast(true);
-
-      // Set session flag for welcome message
       sessionStorage.setItem("welcomeMessageShown", "false");
 
-      // Redirect based on user role
       setTimeout(() => {
         if (data.user.role === "admin") {
           navigate("/admin/dashboard"); // Redirect to admin dashboard
@@ -57,7 +40,7 @@ const Login = ({ setUserRole }) => {
       }, 1500); // Delay redirection to show toast
     } catch (err) {
       console.error("Error during login:", err);
-      setError("An unexpected error occurred. Please try again.");
+      setError(err.response?.data?.message || "An unexpected error occurred. Please try again.");
     }
   };
 
