@@ -1,11 +1,9 @@
 import axios from "axios";
 
 const axiosInstance = axios.create({
-  baseURL:  "process.env.REACT_APP_API_URL"  //"http://localhost:5000", // Replace with your backend URL
-  timeout: 5000, // Timeout after 5 seconds
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: process.env.REACT_APP_API_URL || "http://localhost:5000", // Use Render URL in production
+  timeout: 5000,
+  headers: { "Content-Type": "application/json" },
 });
 
 // Add token to every request

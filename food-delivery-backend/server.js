@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: "https://food-delivery-app-wbdz.onrender.com", // Replace with your frontend URL
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Use Vercel URL in production
   credentials: true,
 })); // Enable Cross-Origin Resource Sharing
 app.use(express.json()); // Parse JSON requests
