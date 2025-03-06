@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:5000", // Replace with your backend URL
+        target: "https://food-delivery-app-wbdz.onrender.com", // Replace with your backend URL
         changeOrigin: true,
         secure: false,
       },
