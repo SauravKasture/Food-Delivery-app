@@ -9,7 +9,7 @@ const userRoutes = require("./routes/userRoutes"); // Import user routes
 const cartRoutes = require("./routes/cartRoutes"); // Import cart routes
 const adminRoutes = require("./routes/adminRoutes");
 const authenticateToken = require("./middleware/authenticateToken"); // Import middleware
-const isAdmin=require("./middleware/isAdmin")
+const isAdmin = require("./middleware/isAdmin");
 const { swaggerDocs, swaggerUi } = require("./swagger");
 
 // Load environment variables
@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Use Vercel URL in production
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Remove trailing slash
   credentials: true,
 })); // Enable Cross-Origin Resource Sharing
 app.use(express.json()); // Parse JSON requests
@@ -55,8 +55,7 @@ app.use("/api/orders", orderRoutes); // Use order routes
 app.use("/api/user", userRoutes); // Register user routes under /api/user
 app.use("/api/menu", menuRoutes); // Register menu routes under /api/menu
 app.use("/api/cart", cartRoutes); // Register cart routes under /api/cart
-// Register admin routes
-app.use("/api/admin", adminRoutes);
+app.use("/api/admin", adminRoutes); // Register admin routes under /api/admin
 
 // Swagger Documentation
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));

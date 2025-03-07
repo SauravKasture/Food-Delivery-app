@@ -56,10 +56,18 @@ const App = () => {
     if (!token) {
       return <Navigate to="/login" />;
     }
-    const decodedToken = JSON.parse(atob(token.split(".")[1]));
-    if (requiredRole && decodedToken.role !== requiredRole) {
-      return <Navigate to="/" />;
+
+    try {
+      const decodedToken = JSON.parse(atob(token.split(".")[1]));
+      if (requiredRole && decodedToken.role !== requiredRole) {
+        return <Navigate to="/" />;
+      }
+    } catch (error) {
+      console.error("Error decoding token in ProtectedRoute:", error);
+      handleLogout(); // Log out if the token is invalid
+      return <Navigate to="/login" />;
     }
+
     return children;
   };
 

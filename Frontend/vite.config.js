@@ -6,7 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://mern-backend-4k19.onrender.com", // Replace with your backend URL
+        target: "http://localhost:5000", // Backend URL for local development
         changeOrigin: true,
         secure: false,
       },
