@@ -20,7 +20,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.FRONTEND_URL, // Remove trailing slash
+  origin: process.env.FRONTEND_URL || "http://localhost:5173", // Match the frontend's origin
   credentials: true,
 })); // Enable Cross-Origin Resource Sharing
 app.use(express.json()); // Parse JSON requests
